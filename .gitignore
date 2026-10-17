@@ -1,0 +1,13 @@
+.pio/
+.vscode/
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/*.pcm
+data/*.wav
+private_dataset/
+recordings/
+*.key
+*.pem
+.env

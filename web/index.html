@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>918 Smart Dog Collar · local BLE companion</title>
+<style>
+  body { max-width: 42rem; margin: 3rem auto; padding: 0 1.2rem; font: 16px/1.5 system-ui, sans-serif; background: #111827; color: #f9fafb; }
+  button { border: 0; border-radius: .7rem; padding: .8rem 1.2rem; background: #7dd3fc; cursor: pointer; font-weight: 700; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #1f2937; padding: 1rem; border-radius: .7rem; min-height: 5rem; }
+  label { display: block; margin: 1rem 0; }
+  small { color: #cbd5e1; }
+</style>
+</head>
+<body>
+<h1>918 Smart Dog Collar</h1>
+<p>Local, opt-in Bluetooth event display. No remote commands, cloud upload, or audio streaming.</p>
+<p><button id="connect" type="button">Connect to collar</button></p>
+<label><input type="checkbox" id="speak"> Also speak the event on this phone</label>
+<p role="status" id="status">Not connected</p>
+<pre id="events" aria-live="polite">No events yet.</pre>
+<small>BLE is disabled in firmware by default. Use a supported Web Bluetooth browser on HTTPS or localhost. BLE notifications are not encrypted or authenticated in this prototype.</small>
+<script>
+"use strict";
+const SERVICE = "9f4b3200-9e08-4ad1-bdc1-f98c8617ac01";
+const CHAR = "9f4b3200-9e08-4ad1-bdc1-f98c8617ac02";
+const button = document.getElementById("connect");
+const status = document.getElementById("status");
+const events = document.getElementById("events");
+const speak = document.getElementById("speak");
+let characteristic = null;
+function addEvent(value) {
+  const line = new Date().toLocaleTimeString() + " " + value;
+  events.textContent = (line + "\n" + events.textContent).slice(0, 6000);
+  if (!speak.checked || !window.speechSynthesis) return;
+  let parsed;
+  try { parsed = JSON.parse(value); } catch { return; }
+  if (parsed.event !== "bark_like") return;
+  const phrases = {
+    alert: "I might be alerting you.",
+    attention: "I might want attention.",
+    play: "I might want to play."
+  };
+  const phrase = phrases[parsed.label] || "I am barking.";
+  const speech = new SpeechSynthesisUtterance(phrase);
+  speech.volume = 0.2;
+  window.speechSynthesis.speak(speech);
+}
+async function connect() {
+  if (!navigator.bluetooth) {
+    status.textContent = "Web Bluetooth is not available in this browser/context.";
+    return;
+  }
+  button.disabled = true;
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "918 Smart Collar" }], optionalServices: [SERVICE]
+    });
+    device.addEventListener("gattserverdisconnected", () => {
+      status.textContent = "Disconnected";
+      button.disabled = false;
+    });
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE);
+    characteristic = await service.getCharacteristic(CHAR);
+    characteristic.addEventListener("characteristicvaluechanged", e => {
+      addEvent(new TextDecoder().decode(e.target.value));
+    });
+    await characteristic.startNotifications();
+    status.textContent = "Connected: receiving event-only BLE notifications";
+  } catch (error) {
+    status.textContent = "Connection failed: " + String(error);
+    button.disabled = false;
+  }
+}
+button.addEventListener("click", connect);
+</script>
+</body>
+</html>
