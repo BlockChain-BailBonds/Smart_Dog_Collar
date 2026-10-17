@@ -33,15 +33,14 @@ function addEvent(value) {
   const line = new Date().toLocaleTimeString() + " " + value;
   events.textContent = (line + "\n" + events.textContent).slice(0, 6000);
   if (!speak.checked || !window.speechSynthesis) return;
-  let parsed;
-  try { parsed = JSON.parse(value); } catch { return; }
-  if (parsed.event !== "bark_like") return;
+  if (!value.startsWith("B|")) return;
+  const label = value.slice(2);
   const phrases = {
     alert: "I might be alerting you.",
     attention: "I might want attention.",
     play: "I might want to play."
   };
-  const phrase = phrases[parsed.label] || "I am barking.";
+  const phrase = phrases[label] || "I am barking.";
   const speech = new SpeechSynthesisUtterance(phrase);
   speech.volume = 0.2;
   window.speechSynthesis.speak(speech);

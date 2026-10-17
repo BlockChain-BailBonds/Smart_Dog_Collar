@@ -11,7 +11,7 @@ import csv
 import math
 import wave
 import numpy as np
-from sklearn.model_selection import GroupShuffleSplit
+from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
 LABELS = ("alert", "attention", "play", "uncertain")
@@ -35,7 +35,7 @@ def read_wav(path: Path) -> np.ndarray:
         return np.frombuffer(w.readframes(n), dtype="<i2").copy()
 
 def load_dataset(index: Path):
-    xs, ys, groups = [], [], []
+    xs, ys, groups, file_labels = [], [], [], []
     with index.open(newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
         if not reader.fieldnames or not {"path", "label", "motion_g"}.issubset(reader.fieldnames):
@@ -49,6 +49,7 @@ def load_dataset(index: Path):
         if label not in LABELS:
             raise ValueError(f"Line {i+2}: invalid label {label}")
         totals[label] += 1
+        file_labels.append(LABELS.index(label))
         motion = float(row["motion_g"])
         if not math.isfinite(motion) or not 0 <= motion <= 10:
             raise ValueError(f"Line {i+2}: motion_g must be finite, 0..10")
@@ -64,10 +65,13 @@ def load_dataset(index: Path):
             groups.append(i)
     if min(totals.values()) < 2:
         raise ValueError("Each of the four labels needs at least two recordings")
-    return np.stack(xs), np.asarray(ys), np.asarray(groups), totals
+    return np.stack(xs), np.asarray(ys), np.asarray(groups), np.asarray(file_labels), totals
 
 def cpp_float(value: float) -> str:
-    return format(float(value), ".10g") + "f"
+    s = format(float(value), ".10g")
+    if "e" not in s.lower() and "." not in s:
+        s += ".0"
+    return s + "f"
 
 def export_header(model: DecisionTreeClassifier, output: Path) -> None:
     tree = model.tree_
@@ -114,9 +118,17 @@ def main() -> None:
     p.add_argument("--index", type=Path, required=True)
     p.add_argument("--out", type=Path, default=Path("include/model_enabled.h"))
     args = p.parse_args()
-    X, y, groups, totals = load_dataset(args.index)
-    split = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=918)
-    train, held = next(split.split(X, y, groups))
+    X, y, groups, file_labels, totals = load_dataset(args.index)
+    file_ids = np.arange(len(file_labels))
+    held_file_count = max(len(LABELS), math.ceil(len(file_labels) * 0.25))
+    train_ids, held_ids = train_test_split(
+        file_ids, test_size=held_file_count, random_state=918,
+        stratify=file_labels,
+    )
+    train = np.flatnonzero(np.isin(groups, train_ids))
+    held = np.flatnonzero(np.isin(groups, held_ids))
+    if len(set(y[train])) != len(LABELS):
+        raise ValueError("Train split dropped a class; collect more distinct recordings")
     model = DecisionTreeClassifier(max_depth=6, min_samples_leaf=4, random_state=918)
     model.fit(X[train], y[train])
     predictions = model.predict(X[held])

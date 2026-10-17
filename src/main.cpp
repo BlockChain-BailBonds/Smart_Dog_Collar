@@ -136,8 +136,10 @@ static void playSpeech(const char* label) {
     const size_t samples = count / sizeof(int16_t);
     if (!samples) break;
     for (size_t i = 0; i < samples; ++i) {
-      stereo[2 * i] = mono[i];
-      stereo[2 * i + 1] = mono[i];
+      // Fixed conservative digital attenuation; still measure real acoustic dBA.
+      const int16_t quiet = (int16_t)(mono[i] / 8);
+      stereo[2 * i] = quiet;
+      stereo[2 * i + 1] = quiet;
     }
     size_t written = 0;
     if (i2s_write(I2S_NUM_1, stereo, samples * 2 * sizeof(int16_t),
@@ -153,14 +155,18 @@ static void playSpeech(const char* label) {
   currentlyPlaying = false;
 }
 
-static void notifyEvent(const String& msg) {
+static void notifyEvent(const String& msg, const char* spokenLabel) {
   Serial.println(msg);
 #if ENABLE_BLE
   if (eventCharacteristic != nullptr && bleServer != nullptr &&
       bleServer->getConnectedCount() > 0) {
-    eventCharacteristic->setValue(msg.c_str());
+    // Short form fits the default 20-byte BLE ATT notification payload.
+    const String shortEvent = String("B|") + spokenLabel;
+    eventCharacteristic->setValue(shortEvent.c_str());
     eventCharacteristic->notify();
   }
+#else
+  (void)spokenLabel;
 #endif
 }
 
@@ -181,7 +187,7 @@ static void publishEvent(float rms, float zcr, float crest, float motion) {
     ",\"zcr\":" + String(zcr, 3) +
     ",\"crest\":" + String(crest, 2) +
     ",\"motion_g\":" + String(motion, 3) + "}";
-  notifyEvent(json);
+  notifyEvent(json, spokenLabel);
   playSpeech(spokenLabel);
 }
 
