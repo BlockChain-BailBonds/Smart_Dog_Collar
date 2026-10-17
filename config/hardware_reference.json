@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "project": "918 Technologies Smart Dog Collar",
+  "design_status": "bench_reference_unverified",
+  "reference_board": "esp32-s3-devkitc-1",
+  "processor": "ESP32-S3",
+  "alternative_unported_platforms": [
+    "ESP32-S3-MINI custom carrier",
+    "ESP32-LyraT"
+  ],
+  "firmware_environment": "esp32-s3-devkitc-1",
+  "power": {
+    "logic_voltage_v": 3.3,
+    "cell": "protected single-cell Li-ion proposed",
+    "regulator": "regulated 3.3 V buck-boost with documented carrier power-path compatibility",
+    "charging": "battery charging off animal; charger and protection design TBD",
+    "tested": false
+  },
+  "interfaces": {
+    "microphone": {
+      "part": "INMP441",
+      "interface": "I2S0 RX",
+      "sample_rate_hz": 16000,
+      "bits_per_slot": 32,
+      "left_right": "left/GND",
+      "gpio": {
+        "bclk": 5,
+        "ws": 4,
+        "din": 6
+      },
+      "verified_on_hardware": false
+    },
+    "amplifier": {
+      "part": "MAX98357A",
+      "interface": "I2S1 TX",
+      "sample_rate_hz": 22050,
+      "pcm_bits": 16,
+      "channels_out": 2,
+      "gpio": {
+        "bclk": 7,
+        "ws": 15,
+        "dout": 16
+      },
+      "output": "8 ohm speaker between SPK+ and SPK-",
+      "verified_on_hardware": false
+    },
+    "motion": {
+      "part": "MPU6050",
+      "interface": "I2C",
+      "address": "0x68",
+      "gpio": {
+        "sda": 8,
+        "scl": 9
+      },
+      "verified_on_hardware": false
+    }
+  },
+  "detector": {
+    "frame_samples": 512,
+    "default_rms_threshold": 750,
+    "event_cooldown_ms": 2500,
+    "playback_guard_ms": 800,
+    "telemetry_interval_ms": 1000,
+    "trained_model": "optional local decision tree; none bundled"
+  },
+  "speech": {
+    "synthesis": "offline eSpeak PCM asset generation",
+    "stored_path": "data/*.pcm",
+    "speaker_local": true,
+    "format": "22050 Hz little endian mono signed 16-bit raw PCM expanded to stereo frames",
+    "digital_attenuation_divisor": 8,
+    "acoustic_output_measured": false
+  },
+  "transport": {
+    "serial": {
+      "baud": 115200,
+      "format": "line-delimited JSON events and telemetry"
+    },
+    "bluetooth": {
+      "default_enabled": false,
+      "service_uuid": "9f4b3200-9e08-4ad1-bdc1-f98c8617ac01",
+      "characteristic_uuid": "9f4b3200-9e08-4ad1-bdc1-f98c8617ac02",
+      "event_wire_format": "B|label",
+      "authentication": "none: development mode only"
+    },
+    "cloud": false
+  },
+  "optional_unimplemented": [
+    "MAX86150 optical/ECG sensor",
+    "GPS receiver and geofencing",
+    "production enclosure",
+    "certified battery charging/protection PCB"
+  ],
+  "restrictions": [
+    "bench-only until independent animal safety review",
+    "no literal dog-language translation",
+    "no clinical or welfare inference"
+  ]
+}

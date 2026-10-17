@@ -28,7 +28,7 @@ Open-source reference design for a **smart talking dog collar** that detects bar
 - Switch, wiring, strain relief, sealed **non-airtight** electronics housing, collar safety release, acoustic outlet, and mechanical mounting hardware.
 - Optional research-only: MAX86150 biometric module and GPS receiver. Earlier alternative audio platform: ESP32-LyraT (not the target of this firmware).
 
-See [wiring/power](docs/HARDWARE.md), [setup](docs/SETUP.md), [AI/data](docs/AI_AND_DATA.md), and [safety](docs/SAFETY.md).
+Start with [complete setup](docs/COMPLETE_SETUP.md), [wiring/power](docs/HARDWARE.md), [setup/flash](docs/SETUP.md), [validation checklist](docs/VALIDATION.md), [machine-readable hardware manifest](config/hardware_reference.json), [AI/data](docs/AI_AND_DATA.md), and [safety](docs/SAFETY.md).
 
 ## System flow
 
@@ -36,7 +36,7 @@ See [wiring/power](docs/HARDWARE.md), [setup](docs/SETUP.md), [AI/data](docs/AI_
 2. Firmware computes RMS/zero-crossing/crest features from a short window, plus MPU6050 acceleration deviation.
 3. Loud windows cause a **bark-like event**. Optional user-trained decision tree maps features to owner-defined observational labels; low-confidence predictions are marked uncertain.
 4. MAX98357A on I2S1 plays a locally stored 22,050 Hz PCM spoken phrase. Untrained mode says “I am barking.”
-5. USB serial shows event JSON; optional BLE offers **event-only** notifications, no continuous audio by default.
+5. USB serial emits event and once-per-second calibration telemetry as JSON; optional BLE sends compact B|label notifications only, never continuous audio by default.
 
 **Do not claim to decode what a dog is thinking.** Bark context/intent labels are hypotheses based on owner observation, not verified language or clinical diagnoses.
 
@@ -67,7 +67,15 @@ The audio generator needs the local command named "espeak". For Windows, install
 | examples/dataset_index.csv | Input CSV schema (no personal recordings in repo) |
 | web/index.html | Optional Android Chrome Web Bluetooth event view |
 | docs/ | Wiring, installation, data/AI and dog safety |
-| .github/workflows/ci.yml | Python syntax + PlatformIO firmware build on GitHub |
+| .github/workflows/ci.yml | Python syntax, synthetic data tests, manifest checks and PlatformIO firmware build on GitHub |
+| config/hardware_reference.json | Hardware, I/O pins, protocols and unverified feature status in machine-readable form |
+| tests/ | Offline deterministic synthetic-data and exported-model validation |
+| docs/VALIDATION.md | Reproducible bench acceptance checklist and measurement record |
+| docs/CHANGELOG.md | Dated change history and feature verification status |
+
+## Validation and nonclaims
+
+The GitHub workflow compiles the target firmware and exercises synthetic dataset/model-export checks; hardware, battery, speaker, sensors and animal behavior remain **unverified** until measured. For full test commands and pass/fail gates, see [VALIDATION.md](docs/VALIDATION.md). Training input recordings are never uploaded by the provided firmware or CI workflow.
 
 ## Prior design evolution
 

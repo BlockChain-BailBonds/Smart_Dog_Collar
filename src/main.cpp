@@ -31,10 +31,12 @@ constexpr uint32_t EVENT_COOLDOWN_MS = 2500;
 constexpr uint32_t AUDIO_FEEDBACK_GUARD_MS = 800;
 constexpr float CLASSIFIER_MIN_CONFIDENCE = 0.70f;
 constexpr size_t FRAME = 512;
+constexpr uint32_t TELEMETRY_INTERVAL_MS = 1000; // Bench calibration, never raw audio.
 
 static bool micReady = false, speakerReady = false, mpuReady = false, fsReady = false;
 static bool currentlyPlaying = false;
 static uint32_t lastEventMs = 0, lastPlaybackMs = 0, eventCount = 0;
+static uint32_t lastTelemetryMs = 0;
 
 #if ENABLE_BLE
 static BLECharacteristic* eventCharacteristic = nullptr;
@@ -243,6 +245,11 @@ void loop() {
   const float zcr = (float)crosses / (FRAME - 1);
   const float crest = peak / fmaxf(rms, 1.0f);
   const uint32_t now = millis();
+  if ((uint32_t)(now - lastTelemetryMs) >= TELEMETRY_INTERVAL_MS) {
+    lastTelemetryMs = now;
+    Serial.printf("{\"event\":\"telemetry\",\"rms\":%.1f,\"zcr\":%.3f,\"crest\":%.2f,\"motion_g\":%.3f}\n",
+                  rms, zcr, crest, readMotionG());
+  }
   if (currentlyPlaying || (now - lastPlaybackMs) < AUDIO_FEEDBACK_GUARD_MS ||
       (now - lastEventMs) < EVENT_COOLDOWN_MS) return;
   if (rms >= BARK_RMS_THRESHOLD) {

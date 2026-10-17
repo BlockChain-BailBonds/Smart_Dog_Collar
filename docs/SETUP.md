@@ -23,7 +23,7 @@ Adjust your actual serial port by adding -p PORT to pio device monitor, and uplo
 
 At boot firmware prints four status bits for microphone, amp, MPU6050 and LittleFS, plus whether a user-trained model is included. Loud audio yields one JSON line with event=bark_like, label=untrained, signal features, and optional acceleration context. A healthy MCU boot is not proof of correct mic capture or bark-specific accuracy.
 
-The default RMS threshold 750 is a **starting value**, not experimentally validated. Compare quiet and target-bark RMS, then set a value above ambient with headroom. Default cooldown is 2.5 s; output suppression avoids the speaker retriggering itself. These settings can suppress closely spaced barks.
+Once per second the device also prints serial JSON with event=telemetry and numerical rms, zcr, crest and motion_g values for bench-only threshold calibration (no raw recordings). The default RMS threshold 750 is a **starting value**, not experimentally validated. Compare quiet and target-bark RMS, then set a value above ambient with headroom. Default cooldown is 2.5 s; output suppression avoids the speaker retriggering itself. These settings can suppress closely spaced barks.
 
 ## Spoken phrases
 
@@ -37,7 +37,7 @@ Modify DEFAULT_PHRASES in scripts/build_audio.py and rerun the generator + uploa
 
 ## Optional BLE / Android browser
 
-Change the flag in platformio.ini from -D ENABLE_BLE=0 to -D ENABLE_BLE=1; rebuild and flash. This starts unencrypted, event-only BLE advertising, with service UUID 9f4b3200-9e08-4ad1-bdc1-f98c8617ac01 and notify characteristic ending ac02. It sends event JSON, **not raw audio**. No bond management/authentication is implemented; keep it off outside a controlled test environment.
+Change the flag in platformio.ini from -D ENABLE_BLE=0 to -D ENABLE_BLE=1; rebuild and flash. This starts unencrypted, event-only BLE advertising, with service UUID 9f4b3200-9e08-4ad1-bdc1-f98c8617ac01 and notify characteristic ending ac02. It sends compact notifications of the form B|bark, B|alert, B|attention, or B|play (a maximum of 11 bytes), **not serial JSON or raw audio**. Serial remains newline-delimited JSON. No bond management/authentication is implemented; keep it off outside a controlled test environment.
 
 The optional web/index.html uses browser Web Bluetooth. Serve it via HTTPS (e.g. a properly configured Pages origin) or localhost with a compatible Bluetooth-enabled browser, generally Chrome on Android. Browser requirements and device permissions vary. Click Connect from a direct user gesture; enable phone TTS only if the owner explicitly opts in. The collar itself plays PCM independently.
 
@@ -53,6 +53,10 @@ pio run -t upload
 ~~~
 
 This produces include/model_enabled.h containing only decision-tree weights/thresholds; decide whether your training outcome is suitable to publish before committing generated weights. Training data (audio) stay local. Obtain repeated sessions and neutral/background examples before accepting performance claims. Read [AI_AND_DATA.md](AI_AND_DATA.md).
+
+## Repeatable validation
+
+Use the [complete setup](COMPLETE_SETUP.md), [hardware manifest](../config/hardware_reference.json), and [validation record](VALIDATION.md). Desktop synthetic-data tests are in tests/ and run on GitHub Actions. A successful build or synthetic-data test does not establish actual wearable safety or real-world bark accuracy.
 
 ## Debugging
 

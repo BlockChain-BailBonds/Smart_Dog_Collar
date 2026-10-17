@@ -27,7 +27,7 @@ The default trainer requires a minimum of 10 recordings and at least two recordi
 
 - Event detector: precision, recall, false alerts/hour by scenario.
 - Classifier: macro-F1, per-class precision/recall and test dog/session split; compare against majority-class baseline.
-- Hardware: audio latency p50/p95, missed I2S frames, sample underflow, 3V3 droop, temperature, battery runtime and audio dBA at ear.
+- Hardware: audio latency p50/p95, missed I2S frames, sample underflow, 3V3 droop, temperature, battery runtime and independently measured acoustic level near ear. Once-per-second serial telemetry supports threshold calibration, not sound exposure measurement.
 - Privacy/security: BLE discovery and notification behavior when unpaired; retention behavior; no cloud traffic.
 - Robustness: speaker feedback, wind, panting, scratching, vehicles and multiple barking dogs.
 
